@@ -1,0 +1,31 @@
+---
+abstract: 'ISO8601 date and duration string type constraints and coercions for Moose'
+author:
+  - 'Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
+  Test::Exception: 0
+  Test::More: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
+distribution_type: module
+generated_by: 'Module::Install version 0.91'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: MooseX-Types-ISO8601
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  DateTime: 0.41
+  DateTime::Format::Duration: 1.03
+  Moose: 0.79
+  MooseX::Types: 0.10
+  MooseX::Types::DateTime: 0.03
+  namespace::autoclean: 0.05
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.00_01
