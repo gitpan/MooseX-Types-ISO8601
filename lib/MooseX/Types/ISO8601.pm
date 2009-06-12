@@ -6,33 +6,65 @@ use MooseX::Types::DateTime qw(Duration);
 use MooseX::Types::Moose qw/Str Num/;
 use namespace::autoclean;
 
-our $VERSION = "0.00_01";
+our $VERSION = "0.01";
 
 use MooseX::Types -declare => [qw(
-    ISO8601Str
-    ISO8601DurationStr
+    ISO8601DateStr
+    ISO8601TimeStr
+    ISO8601DateTimeStr
+    ISO8601TimeDurationStr
+    ISO8601DateDurationStr
+    ISO8601DateTimeDurationStr
 )];
 
-subtype ISO8601Str,
+subtype ISO8601DateStr,
     as Str,
-    where { /^$/ };
+    where { /^\d{4}-\d{2}-\d{2}$/ };
 
-subtype ISO8601DurationStr,
+subtype ISO8601TimeStr,
+    as Str,
+    where { /^\d{2}:\d{2}Z?$/ };
+
+subtype ISO8601DateTimeStr,
+    as Str,
+    where { /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z?$/ };
+
+subtype ISO8601TimeDurationStr,
     as Str,
     where { /^PT\d{2}H\d{2}M\d{2}S$/ };
 
-my $_Duration_coerce_to_ISO8601 = sub {
-    DateTime::Format::Duration->new(normalize => 1, pattern   => 'PT%02HH%02MM%02SS' )->format_duration( shift );
-};
+subtype ISO8601DateDurationStr,
+    as Str,
+    where { /^PT\d+Y\d{2}M\d{2}D$/ };
 
-coerce ISO8601DurationStr,
-    from Duration,
-        via { $_Duration_coerce_to_ISO8601->($_) },
-    from Num,
-        via { $_Duration_coerce_to_ISO8601->(to_Duration($_)) };
-        # FIXME - should be able to say => via_type 'DateTime::Duration';
-        # nothingmuch promised to make that syntax happen if I got
-        # Stevan to approve and/or wrote a test case.
+subtype ISO8601DateTimeDurationStr,
+    as Str,
+    where { /^P\d+Y\d{2}M\d{2}DT\d{2}H\d{2}M\d{2}S$/ };
+
+my %coerce = (
+    ISO8601TimeDurationStr, 'PT%02HH%02MM%02SS',
+    ISO8601DateDurationStr, 'PT%02YY%02MM%02DD',
+    ISO8601DateTimeDurationStr, 'P%02YY%02MM%02DDT%02HH%02MM%02SS',
+);
+
+foreach my $type_name (keys %coerce) {
+    my $code = sub {
+        DateTime::Format::Duration->new(
+            normalize => 1,
+            pattern   => $coerce{$type_name},
+        )
+        ->format_duration( shift );
+    };
+
+    coerce $type_name,
+        from Duration,
+            via { $code->($_) },
+        from Num,
+            via { $code->(to_Duration($_)) };
+            # FIXME - should be able to say => via_type 'DateTime::Duration';
+            # nothingmuch promised to make that syntax happen if I got
+            # Stevan to approve and/or wrote a test case.
+}
 
 1;
 
@@ -44,10 +76,12 @@ MooseX::Types::ISO8601 - ISO8601 date and duration string type constraints and c
 
 =head1 SYNOPSIS
 
-    use MooseX::Types::ISO8601 qw/ISO8601DurationStr/;
+    use MooseX::Types::ISO8601 qw/
+        ISO8601TimeDurationStr
+    /;
 
     has duration => (
-        isa => ISO8601DurationStr,
+        isa => ISO8601TimeDurationStr,
         is => 'ro',
         coerce => 1,
     );
@@ -57,16 +91,60 @@ MooseX::Types::ISO8601 - ISO8601 date and duration string type constraints and c
 
 =head1 DESCRIPTION
 
-This module packages several L<TypeConstraints|Moose::Util::TypeConstraints> with coercions,
-designed to work with the DateTime suite of objects.
+This module packages several L<TypeConstraints|Moose::Util::TypeConstraints> with
+coercions for working with ISO8601 date strings and the DateTime suite of objects.
 
 =head1 CONSTRAINTS
 
 =over
 
-=item ISO8601DurationStr
+=item ISO8601DateStr
 
-An ISO8601 duration string
+An ISO8601 date string. E.g. C<< 2009-06-11 >>
+
+=item ISO8601TimeStr
+
+An ISO8601 time string. E.g. C<< 12:06Z >>
+
+=item ISO8601DateTimeStr
+
+An ISO8601 combined datetime string. E.g. C<< 2009-06-11T12:06Z >>
+
+=item ISO8601DateDurationStr
+
+An ISO8601 date duration string. E.g. C<< P01Y01M01D >>
+
+=over
+
+=item from C< Num >
+
+The number is treated as a time in seconds
+
+=item from C< DateTime::Duration >
+
+The duration represented as a L<DateTime::Duration> object.
+
+=back
+
+=item ISO8601TimeDurationStr
+
+An ISO8601 time duration string. E.g. C<< PT01H01M01S >>
+
+=over
+
+=item from C< Num >
+
+The number is treated as a time in seconds
+
+=item from C< DateTime::Duration >
+
+The duration represented as a L<DateTime::Duration> object.
+
+=back
+
+=item ISO8601DateTimeDurationStr
+
+An ISO8601 comboined date and time duration string. E.g. C<< P01Y01M01DT01H01M01S >>
 
 =over
 
@@ -108,13 +186,11 @@ Specifically missing features:
 
 =over
 
-=item Currently no time string support, just durations
+=item No coercions for times yet
 
-=item Duration string support only supports durations measured in hours
+=item No timezone support - all times are assumed UTC
 
-=item No timezone string support
-
-=item Unsure if strings are proprly accurate to the spec
+=item No week number type
 
 =item Tests are rubbish.
 
