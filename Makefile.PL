@@ -14,9 +14,11 @@ requires 'DateTime' => '0.41';
 requires 'DateTime::Format::Duration' => '1.03';
 requires 'namespace::autoclean' => '0.05';
 
-test_requires 'Test::More';
+test_requires 'Test::More' => '0.88';
 test_requires 'Test::Exception';
 
-auto_install();
-WriteAll();
+resources repository => 'git://github.com/bobtfish/moosex-types-iso8601.git';
+
+auto_install;
+WriteAll;
 
