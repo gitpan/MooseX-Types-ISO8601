@@ -13,11 +13,17 @@ requires 'MooseX::Types::DateTime' => '0.03';
 requires 'DateTime' => '0.41';
 requires 'DateTime::Format::Duration' => '1.03';
 requires 'namespace::autoclean' => '0.05';
+requires 'List::MoreUtils';
 
 test_requires 'Test::More' => '0.88';
 test_requires 'Test::Exception';
 
 resources repository => 'git://github.com/bobtfish/moosex-types-iso8601.git';
+
+if ($Module::Install::AUTHOR) {
+    system("pod2text lib/MooseX/Types/ISO8601.pm > README")
+        and die;
+}
 
 auto_install;
 WriteAll;

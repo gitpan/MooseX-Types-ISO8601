@@ -4,9 +4,10 @@ use DateTime;
 use DateTime::Format::Duration;
 use MooseX::Types::DateTime qw(Duration DateTime);
 use MooseX::Types::Moose qw/Str Num/;
+use List::MoreUtils qw/ zip /;
 use namespace::autoclean;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 use MooseX::Types -declare => [qw(
     ISO8601DateStr
@@ -29,23 +30,26 @@ subtype ISO8601DateTimeStr,
     as Str,
     where { /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z?$/ };
 
+my $timeduration_re = qr/^PT(?:(\d{1,2})H)?(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
 subtype ISO8601TimeDurationStr,
     as Str,
-    where { /^PT\d{2}H\d{2}M\d{2}S$/ };
+    where { /$timeduration_re/ };
 
+my $dateduration_re = qr/^PT(\d+)Y(\d{1,2})M(\d{1,2})D$/;
 subtype ISO8601DateDurationStr,
     as Str,
-    where { /^PT\d+Y\d{2}M\d{2}D$/ };
+    where { /$dateduration_re/ };
 
+my $datetimeduration_re = qr/^P(\d+)Y(\d{1,2})M(\d{1,2})DT(\d{1,2})H(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
 subtype ISO8601DateTimeDurationStr,
     as Str,
-    where { /^P\d+Y\d{2}M\d{2}DT\d{2}H\d{2}M\d{2}S$/ };
+    where { /$datetimeduration_re/ };
 
 {
     my %coerce = (
         ISO8601TimeDurationStr, 'PT%02HH%02MM%02SS',
-        ISO8601DateDurationStr, 'PT%02YY%02MM%02DD',
-        ISO8601DateTimeDurationStr, 'P%02YY%02MM%02DDT%02HH%02MM%02SS',
+        ISO8601DateDurationStr, 'PT%02YY%02mM%02DD',
+        ISO8601DateTimeDurationStr, 'P%02YY%02mM%02DDT%02HH%02MM%02SS',
     );
 
     foreach my $type_name (keys %coerce) {
@@ -84,6 +88,43 @@ subtype ISO8601DateTimeDurationStr,
         from Num,
             via { $coerce{$type_name}->(DateTime->from_epoch( epoch => $_ )) };
     }
+}
+
+{
+    my @datefields = qw/ years months days /;
+    my @timefields = qw/ hours minutes seconds nanoseconds /;
+    my @datetimefields = (@datefields, @timefields);
+    coerce Duration,
+        from ISO8601DateTimeDurationStr,
+            via {
+                my @fields = $_ =~ /$datetimeduration_re/;
+                if ($fields[6]) {
+                    my $missing = 9 - length($fields[6]);
+                    $fields[6] .= "0" x $missing;
+                }
+                else {
+                    $fields[6] = 0;
+                }
+                DateTime::Duration->new( zip @datetimefields, @fields );
+            },
+        from ISO8601DateDurationStr,
+            via {
+                my @fields = $_ =~ /$dateduration_re/;
+                DateTime::Duration->new( zip @datefields, @fields );
+            },
+        from ISO8601TimeDurationStr,
+            via {
+                my @fields = $_ =~ /$timeduration_re/;
+                $fields[0] ||= 0;
+                if ($fields[3]) {
+                    my $missing = 9 - length($fields[3]);
+                    $fields[3] .= "0" x $missing;
+                }
+                else {
+                    $fields[3] = 0;
+                }
+                DateTime::Duration->new( zip @timefields, @fields );
+            };
 }
 
 1;
@@ -174,6 +215,17 @@ The duration represented as a L<DateTime::Duration> object.
 
 =back
 
+The duration types will coerce to:
+
+=over
+
+=item C< Duration >
+
+A L<DateTime::Duration>, i.e. the C< Duration > constraint from
+L<MooseX::Types::DateTime>.
+
+=back
+
 =head1 SEE ALSO
 
 =over
@@ -201,6 +253,20 @@ L<DateTime::Format::Duration>
     http://github.com/bobtfish/moosex-types-iso8601/tree/master
 
 Patches are welcome.
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+http://en.wikipedia.org/wiki/ISO_8601
+
+=item *
+
+http://dotat.at/tmp/ISO_8601-2004_E.pdf
+
+=back
 
 =head1 BUGS
 
