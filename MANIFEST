@@ -19,3 +19,4 @@ t/00use.t
 t/01pod.t
 t/10_duration.t
 t/11_datetime.t
+t/12_mysql.t
