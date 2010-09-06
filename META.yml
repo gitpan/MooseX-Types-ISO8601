@@ -33,4 +33,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/bobtfish/moosex-types-iso8601.git
-version: 0.05
+version: 0.06
