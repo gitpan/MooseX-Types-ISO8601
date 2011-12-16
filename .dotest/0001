@@ -1,0 +1,46 @@
+From db32bacd23f57398180e7f17abad5ffea622e4ee Mon Sep 17 00:00:00 2001
+From: Dave Lambley <davel@isosceles.(none)>
+Date: Thu, 12 Aug 2010 18:48:00 +0100
+Subject: [PATCH] Apparently, the number of hours is optional.
+
+---
+ lib/MooseX/Types/ISO8601.pm |    3 ++-
+ t/10_duration.t             |    1 +
+ 2 files changed, 3 insertions(+), 1 deletions(-)
+
+diff --git a/lib/MooseX/Types/ISO8601.pm b/lib/MooseX/Types/ISO8601.pm
+index 2870c3f..9282a0e 100644
+--- a/lib/MooseX/Types/ISO8601.pm
++++ b/lib/MooseX/Types/ISO8601.pm
+@@ -30,7 +30,7 @@ subtype ISO8601DateTimeStr,
+     as Str,
+     where { /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z?$/ };
+ 
+-my $timeduration_re = qr/^PT(\d{1,2})H(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
++my $timeduration_re = qr/^PT(?:(\d{1,2})H)?(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
+ subtype ISO8601TimeDurationStr,
+     as Str,
+     where { /$timeduration_re/ };
+@@ -115,6 +115,7 @@ subtype ISO8601DateTimeDurationStr,
+         from ISO8601TimeDurationStr,
+             via {
+                 my @fields = $_ =~ /$timeduration_re/;
++                $fields[0] ||= 0;
+                 if ($fields[3]) {
+                     my $missing = 9 - length($fields[3]);
+                     $fields[3] .= "0" x $missing;
+diff --git a/t/10_duration.t b/t/10_duration.t
+index ff3a10a..9c01c3b 100644
+--- a/t/10_duration.t
++++ b/t/10_duration.t
+@@ -65,6 +65,7 @@ use MooseX::Types::DateTime qw/ Duration /;
+ foreach my $tp (
+         ['PT0H15M.507S', 'PT00H15M00S'], # Note pairs, as we normalise whilst
+                                          # roundtripping..
++        ['PT4M10S','PT00H04M10S'],
+     ) {
+     my $t = $tp->[0];
+     my $ret = $tp->[1] || $t;
+-- 
+1.5.4.3
+

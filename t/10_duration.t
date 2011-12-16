@@ -26,7 +26,7 @@ use Test::Exception;
 
 lives_ok {
     my ($time_duration, $date_duration, $datetime_duration)
-        = ('PT00H00M00S', 'PT01Y01M01D', 'P01Y01M01DT00H00M00S');
+        = ('PT00H00M00S', 'P01Y01M01D', 'P01Y01M01DT00H00M00S');
     my $i = MyClass->new(
         time_duration => $time_duration,
         date_duration => $date_duration,
@@ -43,14 +43,14 @@ lives_ok {
 lives_ok {
     my $i = MyClass->new(
         time_duration => 60,
-        date_duration => 60000000000,
-        datetime_duration => 60000000000,
+        date_duration => 259200,
+        datetime_duration => 262800,
     );
     is($i->time_duration, 'PT00H01M00S',
         'Time duration number coerced');
-    is($i->date_duration, 'PT00Y00M02D',
+    is($i->date_duration, 'P00Y00M03D',
         'Date duration number coerced');
-    is($i->datetime_duration, 'P00Y00M02DT10H40M00S',
+    is($i->datetime_duration, 'P00Y00M03DT01H00M00S',
         'DateTime duration number coerced');
 } 'Create with Numeric duration';
 
@@ -62,15 +62,19 @@ use MooseX::Types::ISO8601 qw/
 use MooseX::Types::DateTime qw/ Duration /;
 
 # Time durations
+
+ok !is_ISO8601TimeDurationStr("PT");
+
 foreach my $tp (
-        ['PT0H15M.507S', 'PT00H15M00S'], # Note pairs, as we normalise whilst
-                                         # roundtripping..
+        ['PT0H15M.507S', 'PT00H15M00.507000S'], # Note pairs, as we normalise whilst
+                                                # roundtripping..
         ['PT4M10S','PT00H04M10S'],
+        ['PT51S', 'PT00H00M51S'],
     ) {
     my $t = $tp->[0];
     my $ret = $tp->[1] || $t;
     ok is_ISO8601TimeDurationStr($t), $t . ' is an ISO8601TimeDurationStr';
-    ok !is_ISO8601DateTimeDurationStr($t), $t . ' is not an ISO8601DateTimeDurationStr';
+    ok is_ISO8601DateTimeDurationStr($t), $t . ' is not a ISO8601DateTimeDurationStr, with no date elements';
     ok !is_ISO8601DateDurationStr($t), $t . ' is not an ISO8601DateDurationStr';
     my $dt = to_Duration($t);
     ok $dt, 'Appears to coerce to DateTime::Duration';
@@ -79,12 +83,18 @@ foreach my $tp (
 }
 
 # DateTime durations
+
+ok !is_ISO8601DateTimeDurationStr("P");
+ok !is_ISO8601DateTimeDurationStr("PT");
+
 foreach my $tp (
-        ['P00Y08M02DT0H15M.507S', 'P00Y08M02DT00H15M00S'],
+        ['P00Y08M02DT0H15M.507S', 'P00Y08M02DT00H15M00.507000S'],
+        ['P00Y08M02DT0H15M,507S', 'P00Y08M02DT00H15M00.507000S'],
+        ['P00Y08M03DT0H15M,507S', 'P00Y08M03DT00H15M00.507000S'],
+        ['PT01S', 'P00Y00M00DT00H00M01S'],
     ) {
     my $t = $tp->[0];
     my $ret = $tp->[1] || $t;
-    ok !is_ISO8601TimeDurationStr($t), $t . ' is no an ISO8601TimeDurationStr';
     ok is_ISO8601DateTimeDurationStr($t), $t . ' is an ISO8601DateTimeDurationStr';
     ok !is_ISO8601DateDurationStr($t), $t . ' is not an ISO8601DateDurationStr';
     my $dt = to_Duration($t);
@@ -93,14 +103,20 @@ foreach my $tp (
     is to_ISO8601DateTimeDurationStr($dt), $ret, $t . ' round trips';
 }
 
+ok !is_ISO8601TimeDurationStr('P00Y08M02DT0H15M.507S'), 'has date elements, and so not a time';
+
 # Date durations
+
+ok !is_ISO8601DateDurationStr("P");
+
 foreach my $tp (
-        ['PT02Y08M02D'],
+        ['P02Y08M02D'],
+        ['P02D', 'P00Y00M02D'],
     ) {
     my $t = $tp->[0];
     my $ret = $tp->[1] || $t;
     ok !is_ISO8601TimeDurationStr($t), $t . ' is no an ISO8601TimeDurationStr';
-    ok !is_ISO8601DateTimeDurationStr($t), $t . ' not is an ISO8601DateTimeDurationStr';
+    ok is_ISO8601DateTimeDurationStr($t), $t . ' not is an ISO8601DateTimeDurationStr';
     ok is_ISO8601DateDurationStr($t), $t . ' is an ISO8601DateDurationStr';
     my $dt = to_Duration($t);
     ok $dt, 'Appears to coerce to DateTime::Duration';

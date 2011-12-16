@@ -15,6 +15,7 @@ requires 'DateTime::Format::Duration' => '1.03';
 requires 'namespace::autoclean' => '0.05';
 requires 'List::MoreUtils';
 requires 'Try::Tiny';
+requires 'Scalar::Util';
 
 test_requires 'Test::More' => '0.88';
 test_requires 'Test::Exception';
@@ -26,6 +27,5 @@ if ($Module::Install::AUTHOR) {
         and die;
 }
 
-auto_install;
 WriteAll;
 

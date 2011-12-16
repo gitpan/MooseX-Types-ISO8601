@@ -5,6 +5,7 @@ use DateTime::Format::Duration;
 use MooseX::Types::DateTime qw(Duration DateTime);
 use MooseX::Types::Moose qw/Str Num/;
 use List::MoreUtils qw/ zip /;
+use Scalar::Util qw/ looks_like_number /;
 use Try::Tiny qw/try/;
 our $MYSQL;
 BEGIN {
@@ -16,7 +17,7 @@ BEGIN {
 }
 use namespace::autoclean;
 
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 
 use MooseX::Types -declare => [qw(
     ISO8601DateStr
@@ -39,36 +40,46 @@ subtype ISO8601DateTimeStr,
     as Str,
     where { /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z?$/ };
 
-my $timeduration_re = qr/^PT(?:(\d{1,2})H)?(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
+
+# TODO: According to ISO 8601:2004(E), the lowest order components may be
+# omitted, if less accuracy is required.  The lowest component may also have
+# a decimal fraction.  We don't support these both together, you may only have
+# a fraction on the seconds component.
+
+my $timeduration_re = qr/^PT(?:(\d{1,2})H)?(?:(\d{1,2})M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?S)?$/;
 subtype ISO8601TimeDurationStr,
     as Str,
-    where { /$timeduration_re/ };
+    where { grep { looks_like_number($_) } /$timeduration_re/; };
 
-my $dateduration_re = qr/^PT(\d+)Y(\d{1,2})M(\d{1,2})D$/;
+my $dateduration_re = qr/^P(?:(\d+)Y)?(?:(\d{1,2})M)?(?:(\d{1,2})D)?$/;
 subtype ISO8601DateDurationStr,
     as Str,
-    where { /$dateduration_re/ };
+    where { grep { looks_like_number($_) } /$dateduration_re/ };
 
-my $datetimeduration_re = qr/^P(\d+)Y(\d{1,2})M(\d{1,2})DT(\d{1,2})H(\d{1,2})M(\d{0,2})(?:\.(\d+))?S$/;
+my $datetimeduration_re = qr/^P(?:(\d+)Y)?(?:(\d{1,2})M)?(?:(\d{1,2})D)?(?:T(?:(\d{1,2})H)?(?:(\d{1,2})M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?)S)?$/;
 subtype ISO8601DateTimeDurationStr,
     as Str,
-    where { /$datetimeduration_re/ };
+    where { grep { looks_like_number($_) } /$datetimeduration_re/ };
 
 {
     my %coerce = (
-        ISO8601TimeDurationStr, 'PT%02HH%02MM%02SS',
-        ISO8601DateDurationStr, 'PT%02YY%02mM%02DD',
-        ISO8601DateTimeDurationStr, 'P%02YY%02mM%02DDT%02HH%02MM%02SS',
+        ISO8601TimeDurationStr, 'PT%02HH%02MM%02S.%06NS',
+        ISO8601DateDurationStr, 'P%02YY%02mM%02dD',
+        ISO8601DateTimeDurationStr, 'P%02YY%02mM%02dDT%02HH%02MM%02S.%06NS',
     );
 
     foreach my $type_name (keys %coerce) {
 
         my $code = sub {
-            DateTime::Format::Duration->new(
+            my $str = DateTime::Format::Duration->new(
                 normalize => 1,
                 pattern   => $coerce{$type_name},
             )
             ->format_duration( shift );
+
+            # Remove fractional seconds if there aren't any.
+            $str =~ s/\.0+S$/S/;
+            return $str;
         };
 
         coerce $type_name,
@@ -111,31 +122,24 @@ subtype ISO8601DateTimeDurationStr,
     coerce Duration,
         from ISO8601DateTimeDurationStr,
             via {
-                my @fields = $_ =~ /$datetimeduration_re/;
+                my @fields = map { $_ || 0 } $_ =~ /$datetimeduration_re/;
                 if ($fields[6]) {
                     my $missing = 9 - length($fields[6]);
                     $fields[6] .= "0" x $missing;
-                }
-                else {
-                    $fields[6] = 0;
                 }
                 DateTime::Duration->new( zip @datetimefields, @fields );
             },
         from ISO8601DateDurationStr,
             via {
-                my @fields = $_ =~ /$dateduration_re/;
+                my @fields = map { $_ || 0 } $_ =~ /$dateduration_re/;
                 DateTime::Duration->new( zip @datefields, @fields );
             },
         from ISO8601TimeDurationStr,
             via {
-                my @fields = $_ =~ /$timeduration_re/;
-                $fields[0] ||= 0;
+                my @fields = map { $_ || 0 } $_ =~ /$timeduration_re/;
                 if ($fields[3]) {
                     my $missing = 9 - length($fields[3]);
                     $fields[3] .= "0" x $missing;
-                }
-                else {
-                    $fields[3] = 0;
                 }
                 DateTime::Duration->new( zip @timefields, @fields );
             };
@@ -281,6 +285,15 @@ http://en.wikipedia.org/wiki/ISO_8601
 http://dotat.at/tmp/ISO_8601-2004_E.pdf
 
 =back
+
+=head1 FEATURES
+
+=head2 Fractional seconds
+
+If provided, the number of seconds in time types is represented to microsecond
+accuracy. A full stop character is used as the decimal seperator, which is
+allowed, but deprecated in preference to the comma character in
+I<ISO 8601:2004>.
 
 =head1 BUGS
 
