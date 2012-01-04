@@ -28,8 +28,9 @@ requires:
   MooseX::Types::DateTime: 0.03
   Scalar::Util: 0
   Try::Tiny: 0
+  aliased: 0
   namespace::autoclean: 0.05
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/bobtfish/moosex-types-iso8601.git
-version: 0.08
+version: 0.09

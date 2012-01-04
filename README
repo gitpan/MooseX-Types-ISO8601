@@ -96,9 +96,14 @@ BUGS
 
     Specifically missing features:
 
-    No timezone support - all times are assumed UTC
-    No week number type
-    Tests are rubbish.
+    *   No timezone support - all times are assumed UTC
+
+    *   No week number type
+
+    *   "Basic format", which lacks seperator characters, is not supported
+        for reading or writing.
+
+    *   Tests are rubbish.
 
 AUTHOR
     Tomas Doran (t0m) "<bobtfish@bobtfish.net>"
