@@ -1,7 +1,7 @@
 ---
 abstract: 'ISO8601 date and duration string type constraints and coercions for Moose'
 author:
-  - 'Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>'
+  - '=over'
 build_requires:
   ExtUtils::MakeMaker: 6.42
   Test::Exception: 0
@@ -33,4 +33,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/bobtfish/moosex-types-iso8601.git
-version: 0.10
+version: 0.11

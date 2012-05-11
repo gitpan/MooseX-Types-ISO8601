@@ -18,14 +18,16 @@ BEGIN {
 }
 use namespace::autoclean;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 use MooseX::Types -declare => [qw(
     ISO8601DateStr
     ISO8601TimeStr
     ISO8601DateTimeStr
+    ISO8601DateTimeTZStr
     ISO8601TimeDurationStr
     ISO8601DateDurationStr
+    ISO8601DateTimeDurationStr
     ISO8601DateTimeDurationStr
 )];
 
@@ -44,6 +46,10 @@ subtype ISO8601DateTimeStr,
     as Str,
     where { /$datetime_re/ };
 
+my $datetimetz_re = qr/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:(?:\.|,)(\d+))?((?:\+|-)\d\d:\d\d)$/;
+ subtype ISO8601DateTimeTZStr,
+    as Str,
+    where { /$datetimetz_re/ };
 
 # TODO: According to ISO 8601:2004(E), the lowest order components may be
 # omitted, if less accuracy is required.  The lowest component may also have
@@ -102,6 +108,10 @@ subtype ISO8601DateTimeDurationStr,
         ISO8601TimeStr, sub { die "cannot coerce non-UTC time" if ($_[0]->offset!=0); $_[0]->hms(':') . 'Z' },
         ISO8601DateStr, sub { $_[0]->ymd('-') },
         ISO8601DateTimeStr, sub { die "cannot coerce non-UTC time" if ($_[0]->offset!=0); $_[0]->ymd('-') . 'T' . $_[0]->hms(':') . 'Z' },
+        ISO8601DateTimeTZStr, sub {
+            DateTime::TimeZone->offset_as_string($_[0]->offset) =~ /(.\d\d)(\d\d)/;
+            $_[0]->ymd('-') . 'T' . $_[0]->hms(':') . "$1:$2"
+        },
     );
 
     foreach my $type_name (keys %coerce) {
@@ -116,6 +126,35 @@ subtype ISO8601DateTimeDurationStr,
             coerce $type_name, from MySQLDateTime(),
             via { $coerce{$type_name}->(to_DateTime($_)) };
         }
+    }
+}
+
+{
+    my %coerce = (
+        ISO8601TimeStr, sub {
+            $_ =~ s/^(\d\d) \:? (\d\d) \:? (\d\d([\.\,]\d+)?) (([+-]00\:?(00)?)|Z) $
+                    /${1}:${2}:${3}Z/x;
+            return $_;
+        },
+        ISO8601DateStr, sub {
+            $_ =~ s/^(\d{4}) \-? (\d\d) \-? (\d\d)$
+                    /${1}-${2}-${3}/x;
+            return $_;
+        },
+        ISO8601DateTimeStr, sub {
+            $_ =~ s/^(\d{4}) \-? (\d\d) \-? (\d\d)
+                    T(\d\d) \:? (\d\d) \:? (\d\d([\.\,]\d+)?)
+                    (([+-]00\:?(00)?)|Z)$
+                    /${1}-${2}-${3}T${4}:${5}:${6}Z/x;
+            return $_;
+        },
+    );
+
+    foreach my $type_name (keys %coerce) {
+
+        coerce $type_name,
+        from Str,
+            via { $coerce{$type_name}->($_) },
     }
 }
 
@@ -153,6 +192,7 @@ subtype ISO8601DateTimeDurationStr,
     my @datefields = qw/ year month day /;
     my @timefields = qw/ hour minute second nanosecond /;
     my @datetimefields = (@datefields, @timefields);
+    my @datetimetzfields = (@datefields, @timefields, "time_zone");
     coerce DateTime,
         from ISO8601DateTimeStr,
             via {
@@ -162,6 +202,15 @@ subtype ISO8601DateTimeDurationStr,
                     $fields[6] .= "0" x $missing;
                 }
                 DT->new( zip(@datetimefields, @fields), time_zone => 'UTC' );
+            },
+        from ISO8601DateTimeTZStr,
+            via {
+                my @fields = map { $_ || 0 } $_ =~ /$datetimetz_re/;
+                if ($fields[6]) {
+                    my $missing = 9 - length($fields[6]);
+                    $fields[6] .= "0" x $missing;
+                }
+                DT->new( zip(@datetimetzfields, @fields ) );
             },
         from ISO8601DateStr,
             via {
@@ -223,6 +272,10 @@ An ISO8601 time string. E.g. C<< 12:06:34Z >>
 
 An ISO8601 combined datetime string. E.g. C<< 2009-06-11T12:06:34Z >>
 
+=head2 ISO8601DateTimeTZStr
+
+An ISO8601 combined datetime string with a fully specified timezone. E.g. C<< 2009-06-11T12:06:34+00:00 >>
+
 =head2 COERCIONS
 
 The date types will coerce from:
@@ -236,6 +289,35 @@ The number is treated as a time in seconds since the unix epoch
 =item C< DateTime >
 
 The duration represented as a L<DateTime> object.
+
+=item C< Str >
+
+Non-expanded date and time string representations.
+
+e.g.:-
+
+20120113         => 2012-01-13
+170500Z          => 17:05:00Z
+20120113T170500Z => 2012-01-13T17:05:00Z
+
+Representations of UTC time zone (only an offset of zero is supported)
+
+e.g.:-
+
+17:05:00+00:00 => 17:05:00Z
+17:05:00+00    => 17:05:00Z
+170500+0000    => 17:05:00Z
+
+2012-01-13T17:05:00+00:00 => 2012-01-13T17:05:00Z
+2012-01-13T17:05:00+00    => 2012-01-13T17:05:00Z
+20120113T170500+0000      => 2012-01-13T17:05:00Z
+
+Also supports non-standards mixing of expanded and non-expanded representations
+
+e.g.:-
+
+2012-01-13T170500Z => 2012-01-13T17:05:00Z
+20120113T17:05:00Z => 2012-01-13T17:05:00Z
 
 =back
 
@@ -360,9 +442,23 @@ Tests are rubbish.
 
 =head1 AUTHOR
 
-Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>
+=over
+
+=item Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>
+
+=item Dave Lambley C<< <davel@state51.co.uk> >>
+
+=back
 
 The development of this code was sponsored by my employer L<http://www.state51.co.uk>.
+
+=head2 Contributors
+
+=over
+
+=item Aaron Moses
+
+=back
 
 =head1 COPYRIGHT
 

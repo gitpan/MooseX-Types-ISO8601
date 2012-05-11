@@ -36,6 +36,10 @@ An ISO8601 time string. E.g. `12:06:34Z`
 
 An ISO8601 combined datetime string. E.g. `2009-06-11T12:06:34Z`
 
+## ISO8601DateTimeTZStr
+
+An ISO8601 combined datetime string with a fully specified timezone. E.g. `2009-06-11T12:06:34+00:00`
+
 ## COERCIONS
 
 The date types will coerce from:
@@ -47,6 +51,35 @@ The number is treated as a time in seconds since the unix epoch
 - ` DateTime `
 
 The duration represented as a [DateTime](http://search.cpan.org/search?mode=module&query=DateTime) object.
+
+- ` Str `
+
+Non-expanded date and time string representations.
+
+e.g.:-
+
+20120113         => 2012-01-13
+170500Z          => 17:05:00Z
+20120113T170500Z => 2012-01-13T17:05:00Z
+
+Representations of UTC time zone (only an offset of zero is supported)
+
+e.g.:-
+
+17:05:00+00:00 => 17:05:00Z
+17:05:00+00    => 17:05:00Z
+170500+0000    => 17:05:00Z
+
+2012-01-13T17:05:00+00:00 => 2012-01-13T17:05:00Z
+2012-01-13T17:05:00+00    => 2012-01-13T17:05:00Z
+20120113T170500+0000      => 2012-01-13T17:05:00Z
+
+Also supports non-standards mixing of expanded and non-expanded representations
+
+e.g.:-
+
+2012-01-13T170500Z => 2012-01-13T17:05:00Z
+20120113T17:05:00Z => 2012-01-13T17:05:00Z
 
 # DURATION CONSTRAINTS
 
@@ -149,9 +182,15 @@ Tests are rubbish.
 
 # AUTHOR
 
-Tomas Doran (t0m) `<bobtfish@bobtfish.net>`
+- Tomas Doran (t0m) `<bobtfish@bobtfish.net>`
+
+- Dave Lambley `<davel@state51.co.uk>`
 
 The development of this code was sponsored by my employer <http://www.state51.co.uk>.
+
+## Contributors
+
+- Aaron Moses
 
 # COPYRIGHT
 
