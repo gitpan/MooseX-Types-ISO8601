@@ -8,6 +8,10 @@ use MooseX::Types::ISO8601 qw/
     ISO8601DateTimeStr
 /;
 
+# TODO: instead of relying on Moose attributes, just call ->check,
+# ->assert_coerce etc on the type object directly (see
+# Moose::Meta::TypeConstraint for the available API).
+
 {
     package My::DateClass;
     use Moose;
@@ -30,22 +34,25 @@ use MooseX::Types::ISO8601 qw/
 }
 
 use Test::More;
-use Test::Exception;
-
+use Test::Fatal;
 use DateTime;
 
-lives_ok {
-    my $i = My::DateClass->new(
-        date => '2009-01-01',
-        time => '12:34:29Z',
-        datetime => '2009-01-01T12:34:29Z',
-    );
-    is( $i->date, '2009-01-01', 'Date unmangled' );
-    is( $i->time, '12:34:29Z', 'Time unmangled' );
-    is( $i->datetime, '2009-01-01T12:34:29Z', 'Datetime unmangled' );
-} 'Date class instance';
+foreach my $tz ('', 'Z')
+{
+    is(exception {
+        my $i = My::DateClass->new(
+            date => '2009-01-01',
+            time => '12:34:29' . $tz,
+            datetime => '2009-01-01T12:34:29' . $tz,
+        );
+        is( $i->date, '2009-01-01', 'Date unmangled' );
+        is( $i->time, '12:34:29' . $tz, 'Time unmangled' );
+        is( $i->datetime, '2009-01-01T12:34:29' . $tz, 'Datetime unmangled' );
+    },
+    undef, 'Date class instance');
+}
 
-#lives_ok {
+is(exception {
     my $date = DateTime->now;
     my $i = My::DateClass->new(
         map { $_ => $date } qw/date time datetime/
@@ -54,8 +61,10 @@ lives_ok {
     like( $i->date, qr/\d{4}-\d{2}-\d{2}/, 'Date mangled' );
     like( $i->time, qr/\d{2}:\d{2}Z/, 'Time mangled' );
     like( $i->datetime, qr/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/, 'Datetime mangled' );
-#} 'Date class instance with coercion';
+},
+undef, 'Date class instance with coercion');
 
+foreach my $tz ('', 'Z')
 {
     my $datetime = MooseX::Types::DateTime::to_DateTime('2011-01-04T18:14:15.1234Z');
     isa_ok($datetime, 'DateTime');
@@ -66,12 +75,14 @@ lives_ok {
     is($datetime->minute, 14);
     is($datetime->second, 15);
     is($datetime->nanosecond, 123400000);
+    is($datetime->time_zone->name, 'UTC', 'Z -> UTC');
 
     my $date = MooseX::Types::DateTime::to_DateTime('2011-01-04');
     isa_ok($date, 'DateTime');
     is($date->year, 2011);
     is($date->month, 1);
     is($date->day, 4);
+    is($date->time_zone->name, 'floating', 'no time zome -> floating');
 
 # Cannot work as DateTime requires a year
 #    my $time = MooseX::Types::DateTime::to_DateTime('18:14:15.1234Z');
@@ -85,21 +96,20 @@ lives_ok {
 }
 
 {
-    foreach my $date qw( 2012-01-12 20120112 ) {
+    foreach my $date (qw( 2012-01-12 20120112 )) {
         foreach my $time ( '17:05:00', '17:05:00.0001', '17:05:00,0001', '170500', '170500,0001', '170500.0001' ) {
-            foreach my $zone qw( +0000 +00:00 +00 Z ) {
+            foreach my $zone (qw( +0000 +00:00 +00 Z )) {
                 ok is_ISO8601DateTimeStr( to_ISO8601DateTimeStr($date.'T'.$time.$zone) ), 'coercing '.$date.'T'.$time.$zone;
             }
-            ok !is_ISO8601DateTimeStr( to_ISO8601DateTimeStr($date.'T'.$time) ), 'coercing '.$date.'T'.$time;
         }
     }
 
-    foreach my $date qw( 2012-01-12 20120112 ) {
+    foreach my $date (qw( 2012-01-12 20120112 )) {
         ok is_ISO8601DateStr( to_ISO8601DateStr($date) ), $date.'does not coerce';
     }
 
     foreach my $time ( '17:05:00', '17:05:00.0001', '17:05:00,0001', '170500', '170500,0001', '170500.0001' ) {
-        foreach my $zone qw( +0000 +00:00 +00 Z ) {
+        foreach my $zone (qw( +0000 +00:00 +00 Z )) {
             ok is_ISO8601TimeStr( to_ISO8601TimeStr($time.$zone) ), 'coercing '.$time.$zone;
         }
     }
@@ -115,15 +125,10 @@ lives_ok {
         second => 0,
         time_zone => 'Asia/Taipei'
     );
-    dies_ok { to_ISO8601DateTimeStr($datetime) };
+    like(exception { to_ISO8601DateTimeStr($datetime) }, qr/cannot coerce non-UTC time/);
 
     $datetime->set_time_zone('UTC');
-    lives_ok { to_ISO8601DateTimeStr($datetime) };
-}
-{
-    # You must say Zulu, or we cannot make sense of the date.
-    ok  is_ISO8601DateTimeStr('2011-12-19T15:03:56Z');
-    ok !is_ISO8601DateTimeStr('2011-12-19T15:03:56');
+    is(exception { to_ISO8601DateTimeStr($datetime) }, undef);
 }
 
 {

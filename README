@@ -1,0 +1,13 @@
+
+
+This archive contains the distribution MooseX-Types-ISO8601,
+version 0.12:
+
+  ISO8601 date and duration string type constraints and coercions for Moose
+
+This software is copyright (c) 2012 by Tomas Doran.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+

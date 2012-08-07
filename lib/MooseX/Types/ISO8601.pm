@@ -1,26 +1,33 @@
 package MooseX::Types::ISO8601;
-use Moose ();
+{
+  $MooseX::Types::ISO8601::VERSION = '0.12';
+}
+# git description: v0.11-14-g78e2c70
+
+
+use strict;
+use warnings;
+
+use DateTime 0.41;
 use aliased DateTime => 'DT';
-use DateTime::Format::Duration;
-use MooseX::Types::DateTime qw(Duration DateTime);
+use DateTime::Format::Duration 1.03;
+use MooseX::Types::DateTime 0.03 qw(Duration DateTime);
 use MooseX::Types::Moose qw/Str Num/;
 use List::MoreUtils qw/ zip /;
 use Scalar::Util qw/ looks_like_number /;
-use Try::Tiny qw/try/;
+use Class::Load 'try_load_class';
 
 our $MYSQL;
 BEGIN {
     $MYSQL = 0;
-    if (try { Class::MOP::load_class('MooseX::Types::DateTime::MySQL') }) {
+    if (try_load_class 'MooseX::Types::DateTime::MySQL') {
             MooseX::Types::DateTime::MySQL->import(qw/ MySQLDateTime /);
             $MYSQL = 1;
     }
 }
-use namespace::autoclean;
+use namespace::autoclean 0.05;
 
-our $VERSION = "0.11";
-
-use MooseX::Types -declare => [qw(
+use MooseX::Types 0.10 -declare => [qw(
     ISO8601DateStr
     ISO8601TimeStr
     ISO8601DateTimeStr
@@ -41,7 +48,7 @@ subtype ISO8601TimeStr,
     as Str,
     where { /$time_re/ };
 
-my $datetime_re = qr/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:(?:\.|,)(\d+))?Z$/;
+my $datetime_re = qr/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:(?:\.|,)(\d+))?Z?$/;
 subtype ISO8601DateTimeStr,
     as Str,
     where { /$datetime_re/ };
