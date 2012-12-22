@@ -1,8 +1,8 @@
 package MooseX::Types::ISO8601;
 {
-  $MooseX::Types::ISO8601::VERSION = '0.12';
+  $MooseX::Types::ISO8601::VERSION = '0.13';
 }
-# git description: v0.11-14-g78e2c70
+# git description: v0.12-8-g8fbe81b
 
 
 use strict;
@@ -63,7 +63,7 @@ my $datetimetz_re = qr/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:(?:\.|
 # a decimal fraction.  We don't support these both together, you may only have
 # a fraction on the seconds component.
 
-my $timeduration_re = qr/^PT(?:(\d{1,2})H)?(?:(\d{1,2})M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?S)?$/;
+my $timeduration_re = qr/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?S)?$/;
 subtype ISO8601TimeDurationStr,
     as Str,
     where { grep { looks_like_number($_) } /$timeduration_re/; };
@@ -73,7 +73,7 @@ subtype ISO8601DateDurationStr,
     as Str,
     where { grep { looks_like_number($_) } /$dateduration_re/ };
 
-my $datetimeduration_re = qr/^P(?:(\d+)Y)?(?:(\d{1,2})M)?(?:(\d{1,2})D)?(?:T(?:(\d{1,2})H)?(?:(\d{1,2})M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?)S)?$/;
+my $datetimeduration_re = qr/^P(?:(\d+)Y)?(?:(\d{1,2})M)?(?:(\d{1,2})D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d{0,2})(?:(?:\.|,)(\d+))?)S)?$/;
 subtype ISO8601DateTimeDurationStr,
     as Str,
     where { grep { looks_like_number($_) } /$datetimeduration_re/ };
@@ -203,6 +203,8 @@ subtype ISO8601DateTimeDurationStr,
     coerce DateTime,
         from ISO8601DateTimeStr,
             via {
+                # TODO: surely we should be using
+                # DateTime::Format::ISO8601->parse_datetime for this
                 my @fields = map { $_ || 0 } $_ =~ /$datetime_re/;
                 if ($fields[6]) {
                     my $missing = 9 - length($fields[6]);
@@ -326,6 +328,8 @@ e.g.:-
 2012-01-13T170500Z => 2012-01-13T17:05:00Z
 20120113T17:05:00Z => 2012-01-13T17:05:00Z
 
+In addition, there are coercions from these string types to L<DateTime>.
+
 =back
 
 =head1 DURATION CONSTRAINTS
@@ -340,7 +344,7 @@ An ISO8601 time duration string. E.g. C<< PT01H01M01S >>
 
 =head2 ISO8601DateTimeDurationStr
 
-An ISO8601 comboined date and time duration string. E.g. C<< P01Y01M01DT01H01M01S >>
+An ISO8601 combined date and time duration string. E.g. C<< P01Y01M01DT01H01M01S >>
 
 =head2 COERCIONS
 
@@ -369,54 +373,12 @@ L<MooseX::Types::DateTime>.
 
 =back
 
-=head1 SEE ALSO
-
-=over
-
-=item *
-
-L<MooseX::Types::DateTime>
-
-=item *
-
-L<DateTime>
-
-=item *
-
-L<DateTime::Duration>
-
-=item *
-
-L<DateTime::Format::Duration>
-
-=back
-
-=head1 VERSION CONTROL
-
-    http://github.com/bobtfish/moosex-types-iso8601/tree/master
-
-Patches are welcome.
-
-=head1 SEE ALSO
-
-=over
-
-=item *
-
-http://en.wikipedia.org/wiki/ISO_8601
-
-=item *
-
-http://dotat.at/tmp/ISO_8601-2004_E.pdf
-
-=back
-
 =head1 FEATURES
 
 =head2 Fractional seconds
 
 If provided, the number of seconds in time types is represented to microsecond
-accuracy. A full stop character is used as the decimal seperator, which is
+accuracy. A full stop character is used as the decimal separator, which is
 allowed, but deprecated in preference to the comma character in
 I<ISO 8601:2004>.
 
@@ -438,7 +400,7 @@ No week number type
 
 =item *
 
-"Basic format", which lacks seperator characters, is not supported for
+"Basic format", which lacks separator characters, is not supported for
 reading or writing.
 
 =item *
@@ -446,6 +408,42 @@ reading or writing.
 Tests are rubbish.
 
 =back
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<MooseX::Types::DateTime>
+
+=item *
+
+L<DateTime>
+
+=item *
+
+L<DateTime::Duration>
+
+=item *
+
+L<DateTime::Format::Duration>
+
+=item *
+
+L<http://en.wikipedia.org/wiki/ISO_8601>
+
+=item *
+
+L<http://dotat.at/tmp/ISO_8601-2004_E.pdf>
+
+=back
+
+=head1 VERSION CONTROL
+
+    http://github.com/bobtfish/moosex-types-iso8601/tree/master
+
+Patches are welcome.
 
 =head1 AUTHOR
 
