@@ -1,10 +1,15 @@
 Revision history for MooseX-Types-ISO8601
 
-0.14      2013-02-22 10:53:00 PST-0800 (Karen Etheridge)
-        - New strict types, which verify that the data actually can be inflated
-          into a valid DateTime object
+0.15      2014-05-04 22:20:19Z
+          - remove the install-side pod test with encoding complaints
+          - canonical repository moved to
+            https://github.com/moose/MooseX-Types-ISO8601
 
-0.13      2012-12-21 17:00:17 PST-0800 (Karen Etheridge)
+0.14      2013-02-22 18:53:00Z
+          - New strict types, which verify that the data actually can be
+            inflated into a valid DateTime object
+
+0.13      2012-12-22 01:00:17Z
           - support more than two digits of hours in durations.  (Partial
             support of page 27, paragraph two of ISO 8601:2004(E) ).
           - documentation added for coercions from datetime string types to
@@ -12,7 +17,7 @@ Revision history for MooseX-Types-ISO8601
           - spelling patch applied from debian (RT#81262, thanks Jonas
             Genannt!)
 
-0.12      2012-08-07 14:08:37 PDT-0700 (Karen Etheridge)
+0.12      2012-08-07 21:08:37Z
           - converted uses of Test::Exception to Test::Fatal
           - trailing 'Z' to indicate timezone is now optional, matching the
             official ISO8601 specification (RT#78753)
@@ -38,10 +43,12 @@ Revision history for MooseX-Types-ISO8601
           - Really fix so that it works in all cases.
 
 0.06      2010-09-06 15:44:00 BST+0100
-          - Fix so that it works wihtout MooseX::Types::DateTime::MySQL installed.
+          - Fix so that it works without MooseX::Types::DateTime::MySQL
+            installed.
 
 0.05      2010-09-06 15:16:00 BST+0100
-          - Add support for coercing to and from MooseX::Types::DateTime::MySQL
+          - Add support for coercing to and from
+            MooseX::Types::DateTime::MySQL
 
 0.04      2010-08-15 18:23:00 BST+0100
           - Fix tests on perls compiled with uselongdoubles (RT#60356)
@@ -50,8 +57,8 @@ Revision history for MooseX-Types-ISO8601
           - See also to the ISO8601 wiki page.
           - Added fractional times and tests to Durations.
           - Added coercion from Durations to DateTime objects
-          - Deal better with duration cases found in the spec and real world by
-            dealing with optionally empty hours.
+          - Deal better with duration cases found in the spec and real world
+            by dealing with optionally empty hours.
 
 0.02      2009-10-09 11:00:55 BST+0100
           - Fixed time types.

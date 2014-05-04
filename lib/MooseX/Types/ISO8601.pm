@@ -1,14 +1,15 @@
 package MooseX::Types::ISO8601;
-{
-  $MooseX::Types::ISO8601::VERSION = '0.14';
+BEGIN {
+  $MooseX::Types::ISO8601::AUTHORITY = 'cpan:ETHER';
 }
-# git description: v0.13-15-g1c78bdb
-
+# git description: v0.14-15-gf3d8890
+$MooseX::Types::ISO8601::VERSION = '0.15';
 # ABSTRACT: ISO8601 date and duration string type constraints and coercions for Moose
 
 use strict;
 use warnings;
 
+use utf8;
 use DateTime 0.41;
 # this alias lets us distinguish the class from the class_type in versions of
 # MooseX::Types that can't figure that out for us (i.e. before 0.32)
@@ -33,7 +34,7 @@ BEGIN {
             $MYSQL = 1;
     }
 }
-use namespace::autoclean 0.05;
+use if MooseX::Types->VERSION >= 0.42, 'namespace::autoclean';
 
 use MooseX::Types 0.10 -declare => [qw(
     ISO8601DateStr
@@ -291,9 +292,17 @@ subtype ISO8601DateTimeDurationStr,
 
 __END__
 
+=pod
+
+=encoding UTF-8
+
 =head1 NAME
 
 MooseX::Types::ISO8601 - ISO8601 date and duration string type constraints and coercions for Moose
+
+=head1 VERSION
+
+version 0.15
 
 =head1 SYNOPSIS
 
@@ -323,6 +332,10 @@ MooseX::Types::ISO8601 - ISO8601 date and duration string type constraints and c
 This module packages several L<TypeConstraints|Moose::Util::TypeConstraints> with
 coercions for working with ISO8601 date strings and the DateTime suite of objects.
 
+=head1 NAME
+
+MooseX::Types::ISO8601 - ISO8601 date and duration string type constraints and coercions for Moose
+
 =head1 DATE CONSTRAINTS
 
 =head2 ISO8601DateStr
@@ -351,8 +364,8 @@ An ISO8601 combined datetime string with a fully specified timezone. E.g. C<< 20
 
 As above, only in addition to validating the strings against regular
 expressions, an attempt is made to actually parse the data into a L<DateTime>
-object.  This will catch cases like '2013-02-31' which look correct but do not
-correspond to real-world values.  Note that this is bears a computation
+object.  This will catch cases like C<< 2013-02-31 >> which look correct but do not
+correspond to real-world values.  Note that this bears a computation
 penalty.
 
 =head2 COERCIONS
@@ -545,5 +558,57 @@ The development of this code was sponsored by my employer L<http://www.state51.c
     This program is free software; you can redistribute
     it and/or modify it under the same terms as Perl itself.
 
-=cut
+=head1 AUTHOR
 
+Tomas Doran (t0m) <bobtfish@bobtfish.net>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2009 by Tomas Doran.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=head1 CONTRIBUTORS
+
+=over 4
+
+=item *
+
+Aaron Moses <zebardy@gmail.com>
+
+=item *
+
+Dave Lambley <dave@lambley.me.uk>
+
+=item *
+
+Dave Lambley <davel@isosceles.(none)>
+
+=item *
+
+Dave Lambley <davel@state51.co.uk>
+
+=item *
+
+Karen Etheridge <ether@cpan.org>
+
+=item *
+
+Tomas Doran (t0m) <t0m@state51.co.uk>
+
+=item *
+
+Tomas Doran <bobtfish@bobtfish.net>
+
+=item *
+
+t0m <bobtfish@bobtfish.net>
+
+=item *
+
+zebardy <zebardy@gmail.com>
+
+=back
+
+=cut
